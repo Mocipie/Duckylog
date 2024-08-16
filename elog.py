@@ -120,6 +120,9 @@ def send_log_to_discord():
                     print('Log file sent successfully.')
                 else:
                     print(f'Failed to send log file. Status code: {response.status_code}')
+            # Clear the log file after sending
+            with open(log_path, 'w') as f:
+                f.write('')
     except Exception as e:
         print(f'Error sending log file: {e}')
 
