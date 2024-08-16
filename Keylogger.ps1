@@ -82,6 +82,23 @@ try {
 finally {
     if (Test-Path $logFilePath) { Remove-Item -Path $logFilePath }
     if (Test-Path $localPythonScriptPath) { Remove-Item -Path $localPythonScriptPath }
+    
+    # Remove the shortcut if it exists
+    if (Test-Path $shortcutPath) {
+        Remove-Item -Path $shortcutPath -Force
+        Write-Output "Shortcut removed from $shortcutPath"
+    } else {
+        Write-Output "Shortcut does not exist at $shortcutPath"
+    }
+
+    # Remove the keylogger script if it exists
+    if (Test-Path $keyloggerScriptPath) {
+        Remove-Item -Path $keyloggerScriptPath -Force
+        Write-Output "Keylogger script removed from $keyloggerScriptPath"
+    } else {
+        Write-Output "Keylogger script does not exist at $keyloggerScriptPath"
+    }
+
     Cleanup-TempScripts
 }
 
