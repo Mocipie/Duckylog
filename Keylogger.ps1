@@ -30,7 +30,7 @@ if (-Not (Test-Path $logFilePath)) { New-Item -Path $logFilePath -ItemType File 
 
 try {
     Invoke-WebRequest -Uri $pythonScriptUrl -OutFile $localPythonScriptPath
-    $pythonProcess = Start-Process -FilePath "python" -ArgumentList $localPythonScriptPath -NoNewWindow -PassThru -WindowStyle Hidden
+    $pythonProcess = Start-Process -FilePath "python" -ArgumentList $localPythonScriptPath -NoNewWindow -PassThru
     $pythonProcess.WaitForExit()
 }
 finally {
