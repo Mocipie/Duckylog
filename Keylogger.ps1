@@ -1,3 +1,6 @@
+# Set Execution Policy
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+
 # Define the path to the Startup folder
 $startupFolderPath = [System.IO.Path]::Combine($env:APPDATA, 'Microsoft\Windows\Start Menu\Programs\Startup')
 
@@ -41,7 +44,7 @@ if (Test-Path $shortcutPath) {
     # Create the shortcut
     $shortcut = $wshShell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = 'powershell.exe'
-    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -File `"$renamedScriptPath`""
+    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -File `"$renamedScriptPath`"" 
     $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($renamedScriptPath)
     $shortcut.Save()
 
