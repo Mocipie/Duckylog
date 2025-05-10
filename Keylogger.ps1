@@ -1,3 +1,6 @@
+$mouseLocked = $false
+
+# Run the MouseBlocker logic
 Add-Type -AssemblyName System.Windows.Forms
 
 Add-Type -TypeDefinition @"
@@ -36,23 +39,19 @@ public class MouseBlocker
 
     private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        return (IntPtr)1;
+        return (IntPtr)1; // Block all mouse input
     }
 }
 "@ -ReferencedAssemblies "System.Windows.Forms"
 
+# Start mouse blocking
 [MouseBlocker]::Start()
+$mouseLocked = $true # Set the flag to indicate the mouse is locked
 
-while ($true) {
-    if ([Console]::KeyAvailable) {
-        if ([Console]::ReadKey($true).Key -eq "Escape") {
-            [MouseBlocker]::Stop()
-            break
-        }
-    }
+# Wait until the mouse is locked
+while (-not $mouseLocked) {
     Start-Sleep -Milliseconds 100
 }
-
 # Set Execution Policy
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
