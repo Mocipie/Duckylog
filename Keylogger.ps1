@@ -23,6 +23,9 @@ public class MouseBlocker
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetModuleHandle(string lpModuleName);
 
@@ -39,7 +42,16 @@ public class MouseBlocker
 
     private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        return (IntPtr)1; // Block all mouse input
+        if (nCode >= 0)
+        {
+            // Block specific mouse events (e.g., left-click)
+            const int WM_LBUTTONDOWN = 0x0201;
+            if (wParam.ToInt32() == WM_LBUTTONDOWN)
+            {
+                return (IntPtr)1; // Block the event
+            }
+        }
+        return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam); // Pass other events through
     }
 }
 "@ -ReferencedAssemblies "System.Windows.Forms"
